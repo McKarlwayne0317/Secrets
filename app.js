@@ -106,16 +106,27 @@ app.route("/register")
           }
       );
     });
-
+//The ensureAuthenticated function is defined as middleware.
+function ensureAuthenticated(req, res, next) {
+    if (req.isAuthenticated()) {
+        return next();
+    }
+    res.redirect("/login"); // Redirect to login page if not authenticated
+}
 app.route("/secrets")
-    .get(function (req, res) {
+    .get(ensureAuthenticated ,function (req, res) {
+
         User.find({"secret":{$ne:null}})
             .then(function(foundUser){
                 res.render("secrets",{usersWithSecret:foundUser})
+                passport.authenticate("local")(req,res,function(){
+                    res.redirect("/secrets")
+                })
             })
         .catch(function(err){
             console.log(err);
         })
+
 });
 
 app.route("/submit")
@@ -146,18 +157,14 @@ app.route("/submit")
 app.route("/logout")
     .get(function (req, res) {
         req.logout(function(err) {
-            if (err) { return next(err); }
-            var params = {
-                client_id: process.env['AUTH0_CLIENT_ID'],
-                returnTo: 'http://localhost:3000/'
-            };
-            res.redirect('/');
+            if (err) {
+                // Handle any potential error here
+                console.error("Error during logout:", err);
+            }
+            // Redirect the user to the home page after logout
+            res.redirect("/");
         });
-    })
-    .post(function(req,res){
-
-    })
-
+    });
 app.listen(process.env.PORT || 3000, function () {
   console.log("Server is up and running");
 });
